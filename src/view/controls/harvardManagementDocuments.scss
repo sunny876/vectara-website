@@ -1,0 +1,96 @@
+@import '../../variables.scss';
+@import '../../ui/styleUtils/index.scss';
+
+.documentsPage {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.documentsContainer {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .documentsContent {
+    h1 {
+      text-align: center;
+      margin-bottom: 32px;
+      color: $colorText;
+    }
+
+    .categoryWrapper {
+      min-width: 300px;
+      max-width: 500px;
+      margin: 16px;
+    }
+
+    .categorySection {
+      background-color: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      height: 100%;
+
+      h2 {
+        margin: 0 0 16px 0;
+        color: $colorText;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .categoryDocuments {
+        .documentItem {
+          padding: 12px 0;
+          border-bottom: 1px solid $borderColor;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .documentTitle {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            color: $colorText;
+            font-weight: 500;
+          }
+
+          .documentDate {
+            margin: 0;
+            font-size: 14px;
+            color: $colorSubdued;
+          }
+        }
+      }
+    }
+  }
+}
+
+.modernButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &.sortButton {
+    background-color: #f0f2f5;
+    color: $colorText;
+    
+    &:hover {
+      background-color: darken(#f0f2f5, 5%);
+    }
+  }
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+  margin-right: 16px;
+  object-fit: contain;
+} 

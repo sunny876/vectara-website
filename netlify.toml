@@ -1,0 +1,22 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+  functions = "netlify/functions"
+
+[dev]
+  command = "npm start"
+  port = 8888
+  targetPort = 3000
+  publish = "build"
+  autoLaunch = true
+
+# Define environment variables for the build context
+[build.environment]
+  # We don't put the actual token here, it should be set in Netlify dashboard
+  HUGGINGFACE_API_TOKEN = ""
+
+# Define redirects
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 

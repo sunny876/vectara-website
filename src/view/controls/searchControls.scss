@@ -1,0 +1,87 @@
+@import "../../ui/styleUtils/index.scss";
+@import "../../variables.scss";
+
+.searchControls {
+  padding: $sizeL $sizeXxl * 2 0;
+  
+  input {
+    border-radius: 8px !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06) !important;
+    transition: all 0.2s ease-in-out !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    
+    &:focus {
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.aiPoweredText {
+  color: $colorSubdued;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  
+  &:before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: $colorPrimary;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+  }
+}
+
+.modernButton {
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  font-weight: 500 !important;
+  
+  &:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06) !important;
+  }
+  
+  &.historyButton, &.optionsButton {
+    min-width: 90px;
+  }
+  
+  &.optionsButton {
+    background-color: rgba($colorPrimary, 0.04) !important;
+    
+    &:hover {
+      background-color: rgba($colorPrimary, 0.08) !important;
+    }
+  }
+  
+  &.resetButton {
+    background-color: white !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+    
+    &:hover {
+      background-color: #fcfcfc !important;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba($colorPrimary, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba($colorPrimary, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba($colorPrimary, 0);
+  }
+}
+
+@media screen and (max-width: $breakpointContentIsCramped) {
+  .searchControls {
+    padding: $sizeL $sizeXxl 0;
+  }
+}

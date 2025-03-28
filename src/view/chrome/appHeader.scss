@@ -1,0 +1,68 @@
+@import "../../ui/styleUtils/index.scss";
+@import "../../variables.scss";
+
+.threadneedleHeader {
+  background-color: white;
+  padding: 20px 16px;
+  border-bottom: 1px solid $borderColor;
+  width: 100%;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+  .headerContent {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  
+  .headerTitle {
+    margin-top: 16px;
+    margin-bottom: 8px;
+    text-align: center;
+    
+    h1 {
+      margin: 0;
+      color: $colorText;
+      font-weight: 600;
+    }
+  }
+  
+  .headerSubtitle {
+    p {
+      margin: 0;
+      text-align: center;
+      color: $colorSubdued;
+    }
+  }
+  
+  nav {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+    gap: 24px;
+    
+    .navLink {
+      display: inline-block;
+      padding: 8px 20px;
+      color: $colorText;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: rgba($colorPrimary, 0.05);
+        color: $colorPrimary;
+      }
+      
+      &.active {
+        background-color: $colorPrimary;
+        color: white;
+        
+        &:hover {
+          background-color: darken($colorPrimary, 5%);
+        }
+      }
+    }
+  }
+} 
