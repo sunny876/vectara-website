@@ -40,11 +40,20 @@ npm install
 
 3. Create a `.env` file in the root directory with the following variables:
 ```env
-REACT_APP_CORPUS_KEY=your_corpus_key
-REACT_APP_CUSTOMER_ID=your_customer_id
-REACT_APP_API_KEY=your_api_key
-REACT_APP_ENDPOINT=your_endpoint
+# Required Vectara API Configuration
+REACT_APP_CORPUS_KEY=your_corpus_key        # Your Vectara corpus key
+REACT_APP_CUSTOMER_ID=your_customer_id      # Your Vectara customer ID
+REACT_APP_API_KEY=your_api_key              # Your Vectara API key
+REACT_APP_ENDPOINT=https://api.vectara.io   # Vectara API endpoint
+
+# Optional Configuration
+REACT_APP_RERANK_ENABLED=false              # Enable/disable reranking
+REACT_APP_HYBRID_NUM_WORDS=3                # Number of words for hybrid search
+REACT_APP_HYBRID_LAMBDA_LONG=0.025         # Lambda value for long queries
+REACT_APP_HYBRID_LAMBDA_SHORT=0.025        # Lambda value for short queries
 ```
+
+> Note: Never commit your `.env` file to version control. The `.env` file is already included in `.gitignore`.
 
 4. Start the development server:
 ```bash

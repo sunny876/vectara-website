@@ -66,8 +66,8 @@ export const SummaryUx = () => {
               <SearchResultList
                 results={summarySearchResults}
                 selectedSearchResultPosition={selectedSearchResultPosition}
-                setSearchResultRef={(el: HTMLDivElement | null, index: number) =>
-                  (searchResultsRef.current[index] = el)
+                setSearchResultRef={(index: number, ref: HTMLElement | null) =>
+                  (searchResultsRef.current[index] = ref)
                 }
               />
             </>

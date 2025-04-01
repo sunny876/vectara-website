@@ -243,7 +243,11 @@ export const ProgressReport = ({ isSearching, isSummarizing }: Props) => {
         <VuiList size="s" items={items} alignItems="start" />
       </VuiAccordion>
 
-      <SearchResultsDrawer isOpen={isReviewSearchResultsOpen} onClose={() => setIsReviewSearchResultsOpen(false)} />
+      <SearchResultsDrawer 
+        isOpen={isReviewSearchResultsOpen} 
+        onClose={() => setIsReviewSearchResultsOpen(false)}
+        searchResults={searchResults}
+      />
     </>
   );
 };

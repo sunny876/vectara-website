@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { createContext, useContext, ReactNode, useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, ReactNode, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SearchResult, SummaryLanguage, SearchError, mmrRerankerId, SearchResultWithSnippet } from "../view/types";
-import { useConfigContext } from "./ConfigurationContext";
+import { useConfig } from "./ConfigurationContext";
 import { HistoryItem, addHistoryItem, deleteHistory, retrieveHistory } from "./history";
-import { ApiV2, streamQueryV2 } from "@vectara/stream-query-client";
+import { streamQueryV2 } from "@vectara/stream-query-client";
 import { END_TAG, START_TAG, parseSnippet } from "../utils/parseSnippet";
+import type { StreamQueryConfig, StreamEvent, StreamEventHandler } from '@vectara/stream-query-client/lib/apiV2/types';
 
 interface SearchContextType {
   filterValue: string;
@@ -41,6 +42,9 @@ interface SearchContextType {
   searchResultsRef: React.MutableRefObject<HTMLElement[] | null[]>;
   selectedSearchResultPosition: number | undefined;
   selectSearchResultAt: (position: number) => void;
+  languageValue: SummaryLanguage;
+  setLanguageValue: (value: SummaryLanguage) => void;
+  search: (query: string) => Promise<void>;
 }
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
@@ -55,33 +59,21 @@ type Props = {
   children: ReactNode;
 };
 
-export const SearchContextProvider = ({ children }: Props) => {
-  const { search, rerank, hybrid } = useConfigContext();
-
+export const SearchContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const config = useConfig();
   const [searchValue, setSearchValue] = useState<string>("");
   const [filterValue, setFilterValue] = useState("");
-
+  const [languageValue, setLanguageValue] = useState<SummaryLanguage>("eng");
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // Language
-  const [languageValue, setLanguageValue] = useState<SummaryLanguage>();
-
-  // History
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-
-  // Basic search
+  const [history, setHistory] = useState<HistoryItem[]>(retrieveHistory());
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<SearchError | undefined>();
   const [searchResults, setSearchResults] = useState<SearchResultWithSnippet[] | undefined>(undefined);
   const [searchTime, setSearchTime] = useState<number>(0);
-
-  // Summarization
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summarizationError, setSummarizationError] = useState<SearchError | undefined>();
   const [summarizationResponse, setSummarizationResponse] = useState<string>();
   const [summaryTime, setSummaryTime] = useState<number>(0);
-
-  // Citation selection
   const searchResultsRef = useRef<HTMLElement[] | null[]>([]);
   const [selectedSearchResultPosition, setSelectedSearchResultPosition] = useState<number>();
 
@@ -89,25 +81,18 @@ export const SearchContextProvider = ({ children }: Props) => {
     setHistory(retrieveHistory());
   }, []);
 
-  // Use the browser back and forward buttons to traverse history
-  // of searches, and bookmark or share the URL.
   useEffect(() => {
-    // Search params are updated as part of calling onSearch, so we don't
-    // want to trigger another search when the search params change if that
-    // search is already in progress.
     if (isSearching) return;
 
     const urlParams = new URLSearchParams(searchParams);
 
     onSearch({
-      // Set to an empty string to wipe out any existing search value.
       value: getQueryParam(urlParams, "query") ?? "",
       filter: getQueryParam(urlParams, "filter"),
       language: getQueryParam(urlParams, "language") as SummaryLanguage | undefined,
       isPersistable: false
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]); // TODO: Add onSearch and fix infinite render loop
+  }, [searchParams]);
 
   useEffect(() => {
     if (searchResults) {
@@ -124,11 +109,9 @@ export const SearchContextProvider = ({ children }: Props) => {
 
   const selectSearchResultAt = (position: number) => {
     if (!searchResultsRef.current[position] || selectedSearchResultPosition === position) {
-      // Reset selected position.
       setSelectedSearchResultPosition(undefined);
     } else {
       setSelectedSearchResultPosition(position);
-      // Scroll to the selected search result.
       window.scrollTo({
         top: searchResultsRef.current[position]!.offsetTop - 78,
         behavior: "smooth"
@@ -157,14 +140,10 @@ export const SearchContextProvider = ({ children }: Props) => {
     setSummarizationResponse(undefined);
 
     if (value?.trim()) {
-      // Store current search query in sessionStorage for hallucination evaluation
       sessionStorage.setItem('lastQuery', value);
 
-      // Save to history.
       setHistory(addHistoryItem({ query: value, filter, language }, history));
 
-      // Persist to URL, only if the search executes. This way the prior
-      // search that was persisted remains in the URL if the search doesn't execute.
       if (isPersistable) {
         setSearchParams(
           new URLSearchParams(
@@ -180,10 +159,41 @@ export const SearchContextProvider = ({ children }: Props) => {
       setSelectedSearchResultPosition(undefined);
 
       const startTime = Date.now();
-      let resultsWithSnippets;
 
       try {
-        const onStreamEvent = (event: ApiV2.StreamEvent) => {
+        const streamQueryConfig: StreamQueryConfig = {
+          customerId: config.customerId!,
+          apiKey: config.apiKey!,
+          query: value,
+          corpusKey: config.corpusKey!,
+          search: {
+            offset: 0,
+            metadataFilter: "",
+            lexicalInterpolation:
+              value.trim().split(" ").length > config.hybrid.numWords ? config.hybrid.lambdaLong : config.hybrid.lambdaShort,
+            reranker:
+              config.rerank.isEnabled && config.rerank.id
+                ? config.rerank.id === mmrRerankerId
+                  ? {
+                      type: "mmr",
+                      diversityBias: 0
+                    }
+                  : {
+                      type: "customer_reranker",
+                      rerankerId: `rnk_${config.rerank.id.toString()}`
+                    }
+                : undefined,
+            contextConfiguration: {
+              sentencesBefore: 2,
+              sentencesAfter: 2,
+              startTag: START_TAG,
+              endTag: END_TAG
+            }
+          },
+          chat: { store: true }
+        };
+
+        const onStreamEvent = (event: StreamEvent) => {
           switch (event.type) {
             case "requestError":
             case "genericError":
@@ -201,9 +211,8 @@ export const SearchContextProvider = ({ children }: Props) => {
               setIsSearching(false);
               setSearchTime(Date.now() - startTime);
 
-              resultsWithSnippets = event.searchResults.map((result: SearchResult) => {
+              const resultsWithSnippets = event.searchResults.map((result: SearchResult) => {
                 const { pre, text, post } = parseSnippet(result.text);
-
                 return {
                   ...result,
                   snippet: {
@@ -215,7 +224,6 @@ export const SearchContextProvider = ({ children }: Props) => {
               });
 
               setSearchResults(resultsWithSnippets);
-
               break;
 
             case "generationChunk":
@@ -232,52 +240,18 @@ export const SearchContextProvider = ({ children }: Props) => {
           }
         };
 
-        const streamQueryConfig: ApiV2.StreamQueryConfig = {
-          apiKey: search.apiKey!,
-          customerId: search.customerId!,
-          query: value,
-          corpusKey: search.corpusKey!,
-          search: {
-            offset: 0,
-            metadataFilter: "",
-            lexicalInterpolation:
-              value.trim().split(" ").length > hybrid.numWords ? hybrid.lambdaLong : hybrid.lambdaShort,
-            reranker:
-              rerank.isEnabled && rerank.id
-                ? rerank.id === mmrRerankerId
-                  ? {
-                      type: "mmr",
-                      diversityBias: 0
-                    }
-                  : {
-                      type: "customer_reranker",
-                      // rnk_ prefix needed for conversion from API v1 to v2.
-                      rerankerId: `rnk_${rerank.id.toString()}`
-                    }
-                : undefined,
-            contextConfiguration: {
-              // If sentences/chars context is not displayed properly,
-              // you may need to adjust the CONTEXT_MAX_LENGTH variable
-              // in the components that display reference snippets.
-              sentencesBefore: 2,
-              sentencesAfter: 2,
-              startTag: START_TAG,
-              endTag: END_TAG
-            }
-          },
-          chat: { store: true }
-        };
-
-        streamQueryV2({ streamQueryConfig, onStreamEvent });
+        await streamQueryV2({
+          streamQueryConfig: streamQueryConfig,
+          onStreamEvent: onStreamEvent,
+          includeRawEvents: false
+        });
       } catch (error) {
         console.log("Summary error", error);
         setIsSummarizing(false);
         setSummarizationError(error as SearchError);
         setSummarizationResponse(undefined);
-        return;
       }
     } else {
-      // Persist to URL.
       if (isPersistable) setSearchParams(new URLSearchParams(""));
 
       setSearchResults(undefined);
@@ -288,9 +262,92 @@ export const SearchContextProvider = ({ children }: Props) => {
   };
 
   const reset = () => {
-    // Specifically don't reset language because that's more of a
-    // user preference.
     onSearch({ value: "", filter: "" });
+  };
+
+  const search = async (query: string) => {
+    setIsSearching(true);
+    setSearchError(undefined);
+
+    try {
+      const streamQueryConfig: StreamQueryConfig = {
+        customerId: config.search.customerId,
+        apiKey: config.search.apiKey,
+        query,
+        corpusKey: config.search.corpusKey,
+        search: {
+          metadataFilter: "",
+          offset: 0,
+          limit: 10,
+        },
+        generation: {
+          maxResponseCharacters: 1000,
+          modelParameters: {
+            maxTokens: 1000,
+            temperature: 0.7,
+            frequencyPenalty: 0,
+            presencePenalty: 0,
+          },
+          citations: {
+            style: "html",
+            urlPattern: "{url}",
+            textPattern: "{text}",
+          },
+          enableFactualConsistencyScore: true,
+        },
+      };
+
+      const onStreamEvent: StreamEventHandler = (event: StreamEvent) => {
+        switch (event.type) {
+          case "requestError":
+          case "genericError":
+          case "unexpectedError":
+            setSearchError({
+              message: "Error sending the query request"
+            });
+            break;
+
+          case "error":
+            setSearchError({ message: event.messages.join(', ') });
+            break;
+
+          case "searchResults":
+            const resultsWithSnippets = event.searchResults.map((result: SearchResult) => {
+              const { pre, text, post } = parseSnippet(result.text);
+              return {
+                ...result,
+                snippet: { pre, text, post }
+              };
+            });
+            setSearchResults(resultsWithSnippets);
+            break;
+
+          case "end":
+            setIsSearching(false);
+            break;
+        }
+      };
+
+      await streamQueryV2({
+        streamQueryConfig: streamQueryConfig,
+        onStreamEvent: onStreamEvent,
+        includeRawEvents: false
+      });
+
+      setSearchParams({ q: query }, { replace: true });
+      const newHistoryItem = { 
+        query, 
+        filter: "", 
+        language: "auto" as const,
+        date: new Date().toISOString() 
+      };
+      addHistoryItem(newHistoryItem, history);
+      setHistory(retrieveHistory());
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchError({ message: error instanceof Error ? error.message : 'An unknown error occurred' });
+      setIsSearching(false);
+    }
   };
 
   return (
@@ -318,7 +375,10 @@ export const SearchContextProvider = ({ children }: Props) => {
         clearHistory,
         searchResultsRef,
         selectedSearchResultPosition,
-        selectSearchResultAt
+        selectSearchResultAt,
+        languageValue,
+        setLanguageValue,
+        search,
       }}
     >
       {children}

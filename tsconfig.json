@@ -15,7 +15,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["@types/jest", "node"]
+    "types": ["@types/jest", "node", "react", "react-dom"],
+    "baseUrl": "src",
+    "paths": {
+      "*": ["*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }
