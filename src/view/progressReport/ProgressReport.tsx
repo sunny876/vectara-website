@@ -246,7 +246,7 @@ export const ProgressReport = ({ isSearching, isSummarizing }: Props) => {
       <SearchResultsDrawer 
         isOpen={isReviewSearchResultsOpen} 
         onClose={() => setIsReviewSearchResultsOpen(false)}
-        searchResults={searchResults}
+        searchResults={searchResults || []}
       />
     </>
   );

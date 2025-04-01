@@ -15,9 +15,10 @@ interface SearchResultWithSnippet {
 interface Props {
   results: SearchResultWithSnippet[];
   setSearchResultRef: (index: number, ref: HTMLElement | null) => void;
+  selectedSearchResultPosition?: number;
 }
 
-export const SearchResultList: React.FC<Props> = ({ results, setSearchResultRef }) => {
+export const SearchResultList: React.FC<Props> = ({ results, setSearchResultRef, selectedSearchResultPosition }) => {
   const [sortedResults, setSortedResults] = useState<SearchResultWithSnippet[]>([]);
 
   useEffect(() => {
